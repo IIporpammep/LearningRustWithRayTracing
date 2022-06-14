@@ -1,5 +1,5 @@
 [package]
-name = "LearningRustWithRayTracing"
+name = "learning_rust_with_ray_tracing"
 version = "0.1.0"
 edition = "2021"
 
