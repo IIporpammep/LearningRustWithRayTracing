@@ -4,9 +4,30 @@ use std::io::{Error, Write};
 pub mod ray;
 pub mod vector;
 use ray::Ray;
-use vector::{lerp, Vector};
+use vector::{dot, lerp, Vector};
 
-fn generate_color_gradient(ray: &Ray) -> Vector {
+fn hit_sphere(centre: &Vector, radius: f32, ray: &Ray) -> bool {
+    let oc: Vector = (*ray).origin - (*centre);
+    let a: f32 = dot(&(*ray).direction, &(*ray).direction);
+    let b: f32 = 2.0 * dot(&oc, &(*ray).direction);
+    let c: f32 = dot(&oc, &oc) - radius * radius;
+    let discriminant: f32 = b * b - 4.0 * a * c;
+    return discriminant > 0.0;
+}
+
+fn calculate_color(ray: &Ray) -> Vector {
+    if hit_sphere(
+        &Vector {
+            data: [0.0, 0.0, 1.0],
+        },
+        0.5,
+        ray,
+    ) {
+        return Vector {
+            data: [1.0, 0.0, 0.0],
+        };
+    }
+
     let direction_normalized: Vector = (*ray).direction.normalize();
 
     // Remap y = [-1..1] to [0..1] range.
@@ -55,7 +76,7 @@ fn main() -> Result<(), Error> {
                 origin: origin,
                 direction: lower_left_corner + u * viewport_width + v * viewport_height,
             };
-            let color: Vector = generate_color_gradient(&ray);
+            let color: Vector = calculate_color(&ray);
 
             let r: u8 = (color.r() * 255.99) as u8;
             let g: u8 = (color.g() * 255.99) as u8;
