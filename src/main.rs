@@ -1,31 +1,26 @@
 use std::fs::File;
 use std::io::{Error, Write};
 
+pub mod hit_record;
+pub mod hittables;
 pub mod ray;
 pub mod vector;
+use hittables::hittable::Hittable;
+use hittables::hittable_list::HittableList;
+use hittables::sphere::Sphere;
 use ray::Ray;
-use vector::{dot, lerp, Vector};
+use vector::{lerp, Vector};
 
-fn hit_sphere(centre: &Vector, radius: f32, ray: &Ray) -> bool {
-    let oc: Vector = (*ray).origin - (*centre);
-    let a: f32 = dot(&(*ray).direction, &(*ray).direction);
-    let b: f32 = 2.0 * dot(&oc, &(*ray).direction);
-    let c: f32 = dot(&oc, &oc) - radius * radius;
-    let discriminant: f32 = b * b - 4.0 * a * c;
-    return discriminant > 0.0;
-}
-
-fn calculate_color(ray: &Ray) -> Vector {
-    if hit_sphere(
-        &Vector {
-            data: [0.0, 0.0, 1.0],
-        },
-        0.5,
-        ray,
-    ) {
-        return Vector {
-            data: [1.0, 0.0, 0.0],
-        };
+fn calculate_color(ray: &Ray, world: &HittableList) -> Vector {
+    match (*world).hit(ray, 0.0, f32::MAX) {
+        Some(hit_result) => {
+            return 0.5
+                * (hit_result.normal
+                    + Vector {
+                        data: [1.0, 1.0, 1.0],
+                    })
+        }
+        None => (),
     }
 
     let direction_normalized: Vector = (*ray).direction.normalize();
@@ -67,6 +62,22 @@ fn main() -> Result<(), Error> {
         data: [0.0, 2.0, 0.0],
     };
 
+    let mut world: HittableList = HittableList {
+        hittables: Vec::new(),
+    };
+    world.hittables.push(Box::new(Sphere {
+        centre: Vector {
+            data: [0.0, 0.0, 1.0],
+        },
+        radius: 0.5,
+    }));
+    world.hittables.push(Box::new(Sphere {
+        centre: Vector {
+            data: [0.0, -100.5, 1.0],
+        },
+        radius: 100.0,
+    }));
+
     for y in 0..height {
         for x in 0..width {
             let u: f32 = x as f32 / width as f32;
@@ -76,7 +87,7 @@ fn main() -> Result<(), Error> {
                 origin: origin,
                 direction: lower_left_corner + u * viewport_width + v * viewport_height,
             };
-            let color: Vector = calculate_color(&ray);
+            let color: Vector = calculate_color(&ray, &world);
 
             let r: u8 = (color.r() * 255.99) as u8;
             let g: u8 = (color.g() * 255.99) as u8;

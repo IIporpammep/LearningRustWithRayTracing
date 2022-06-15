@@ -1,6 +1,6 @@
 use std::ops;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Vector {
     pub data: [f32; 3],
 }
@@ -122,6 +122,19 @@ impl ops::Div for Vector {
     }
 }
 
+impl ops::Neg for Vector {
+    type Output = Vector;
+
+    fn neg(self) -> Self::Output {
+        let data: [f32; 3] = [
+           - self.data[0],
+           - self.data[1],
+           - self.data[2],
+        ];
+        return Self { data };
+    }
+}
+
 impl ops::Mul<Vector> for f32{
     type Output = Vector;
 
@@ -130,6 +143,19 @@ impl ops::Mul<Vector> for f32{
             self * rhs.data[0],
             self * rhs.data[1],
             self * rhs.data[2],
+        ];
+        return Self::Output { data };
+    }
+}
+
+impl  ops::Div<f32> for Vector {
+    type Output = Vector;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        let data: [f32; 3] = [
+            self.data[0] / rhs,
+            self.data[1] / rhs,
+            self.data[2]  / rhs,
         ];
         return Self::Output { data };
     }
