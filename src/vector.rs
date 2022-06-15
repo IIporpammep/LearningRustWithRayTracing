@@ -1,5 +1,6 @@
 use std::ops;
 
+#[derive(Copy, Clone)]
 pub struct Vector {
     pub data: [f32; 3],
 }
@@ -15,6 +16,10 @@ pub fn cross(vec1: &Vector, vec2: &Vector) -> Vector {
         vec1.data[0] * vec2.data[1] - vec1.data[1] * vec2.data[0],
     ];
     return Vector { data };
+}
+
+pub fn lerp(start: &Vector, end : &Vector, t : f32) -> Vector{
+    (*start) + t * ((*end) - (*start))
 }
 
 impl Vector {
@@ -114,5 +119,18 @@ impl ops::Div for Vector {
             self.data[2] / rhs.data[2],
         ];
         return Self { data };
+    }
+}
+
+impl ops::Mul<Vector> for f32{
+    type Output = Vector;
+
+    fn mul(self, rhs: Vector) -> Self::Output {
+        let data: [f32; 3] = [
+            self * rhs.data[0],
+            self * rhs.data[1],
+            self * rhs.data[2],
+        ];
+        return Self::Output { data };
     }
 }
