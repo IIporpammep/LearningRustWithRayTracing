@@ -62,7 +62,13 @@ fn main() -> Result<(), Error> {
                 result_color += calculate_color(&ray, &world);
             }
 
-            output = write_average_color(output, result_color, samples_per_pixel);
+            match write_average_color(output, result_color, samples_per_pixel) {
+                Ok(file) => output = file,
+                Err(error) => {
+                    print!("Error during file writing: {}", error);
+                    return Err(error);
+                }
+            }
         }
     }
 
@@ -97,13 +103,18 @@ fn calculate_color(ray: &Ray, world: &HittableList) -> Vector {
     );
 }
 
-fn write_average_color(mut file: File, color: Vector, samples_per_pixel: i32) -> File {
+fn write_average_color(
+    mut file: File,
+    color: Vector,
+    samples_per_pixel: i32,
+) -> Result<File, Error> {
     let average_color = color / (samples_per_pixel as f32);
 
     let r: u8 = (average_color.r() * 255.99) as u8;
     let g: u8 = (average_color.g() * 255.99) as u8;
     let b: u8 = (average_color.b() * 255.99) as u8;
-    write!(file, "{} {} {}\n", r, g, b);
-
-    return file;
+    match write!(file, "{} {} {}\n", r, g, b) {
+        Ok(_it) => return Ok(file),
+        Err(err) => return Err(err),
+    };
 }
