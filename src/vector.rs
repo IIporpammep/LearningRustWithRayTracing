@@ -83,6 +83,19 @@ impl ops::Add for Vector {
     }
 }
 
+impl ops::AddAssign for Vector {
+    fn add_assign(&mut self, rhs: Self) {
+
+        let data: [f32; 3] = [
+            self.data[0] + rhs.data[0],
+            self.data[1] + rhs.data[1],
+            self.data[2] + rhs.data[2],
+        ];
+
+        *self = Vector{ data: data}
+    }
+}
+
 impl ops::Sub for Vector {
     type Output = Self;
 
