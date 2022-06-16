@@ -101,6 +101,14 @@ impl Vector {
     {
         *self - 2.0 * dot(self, normal) * (*normal)
     }
+
+    pub fn refract(&self, normal : &Vector, refraction_ratio : f32) -> Vector
+    {
+      let cos_theta = dot(&-(*self), normal).min(1.0);
+      let r_out_perp = refraction_ratio * ((*self) + cos_theta * (*normal));
+      let r_out_parallel = - (1.0 - r_out_perp.squared_length()).abs().sqrt() * (*normal);
+      r_out_perp + r_out_parallel
+    }
 }
 
 impl ops::Add for Vector {

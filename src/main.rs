@@ -1,3 +1,4 @@
+use materials::dielectric_material::DielectricMaterial;
 use materials::diffuse_material::DiffuseMaterial;
 use materials::material::Material;
 use materials::metal_material::MetalMaterial;
@@ -26,20 +27,17 @@ fn main() -> Result<(), Error> {
     };
     let material_centre: &'static DiffuseMaterial = &DiffuseMaterial {
         albedo: Vector {
-            data: [0.7, 0.3, 0.3],
+            data: [0.1, 0.2, 0.5],
         },
     };
-    let material_left: &'static MetalMaterial = &MetalMaterial {
-        albedo: Vector {
-            data: [0.8, 0.8, 0.8],
-        },
-        fuzziness : 0.3
+    let material_left: &'static DielectricMaterial = &DielectricMaterial {
+        refraction_index: 1.5,
     };
     let material_right: &'static MetalMaterial = &MetalMaterial {
         albedo: Vector {
             data: [0.8, 0.6, 0.2],
         },
-        fuzziness : 1.0
+        fuzziness: 0.0,
     };
 
     let mut world: HittableList = HittableList {
@@ -67,6 +65,14 @@ fn main() -> Result<(), Error> {
             data: [-1.0, 0.0, 1.0],
         },
         radius: 0.5,
+        material: material_left as &dyn Material,
+    }));
+
+    world.hittables.push(Box::new(Sphere {
+        centre: Vector {
+            data: [-1.0, 0.0, 1.0],
+        },
+        radius: -0.4,
         material: material_left as &dyn Material,
     }));
 
