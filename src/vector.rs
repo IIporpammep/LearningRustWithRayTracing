@@ -1,5 +1,7 @@
 use std::ops;
 
+use rand::{distributions::Uniform, prelude::Distribution};
+
 #[derive(Copy, Clone, Default)]
 pub struct Vector {
     pub data: [f32; 3],
@@ -18,8 +20,29 @@ pub fn cross(vec1: &Vector, vec2: &Vector) -> Vector {
     return Vector { data };
 }
 
-pub fn lerp(start: &Vector, end : &Vector, t : f32) -> Vector{
+pub fn lerp(start: &Vector, end: &Vector, t: f32) -> Vector {
     (*start) + t * ((*end) - (*start))
+}
+
+pub fn random_on_unit_sphere() -> Vector {
+    let mut random = rand::thread_rng();
+    let chance = Uniform::<f32>::from(-1.0..1.0);
+
+    loop {
+        let data = [
+            chance.sample(&mut random),
+            chance.sample(&mut random),
+            chance.sample(&mut random),
+        ];
+
+        let random_vector = Vector { data: data };
+
+        if random_vector.squared_length() >= 1.0 {
+            continue;
+        }
+
+        return random_vector.normalize();
+    }
 }
 
 impl Vector {
@@ -85,14 +108,13 @@ impl ops::Add for Vector {
 
 impl ops::AddAssign for Vector {
     fn add_assign(&mut self, rhs: Self) {
-
         let data: [f32; 3] = [
             self.data[0] + rhs.data[0],
             self.data[1] + rhs.data[1],
             self.data[2] + rhs.data[2],
         ];
 
-        *self = Vector{ data: data}
+        *self = Vector { data: data }
     }
 }
 
@@ -139,37 +161,25 @@ impl ops::Neg for Vector {
     type Output = Vector;
 
     fn neg(self) -> Self::Output {
-        let data: [f32; 3] = [
-           - self.data[0],
-           - self.data[1],
-           - self.data[2],
-        ];
+        let data: [f32; 3] = [-self.data[0], -self.data[1], -self.data[2]];
         return Self { data };
     }
 }
 
-impl ops::Mul<Vector> for f32{
+impl ops::Mul<Vector> for f32 {
     type Output = Vector;
 
     fn mul(self, rhs: Vector) -> Self::Output {
-        let data: [f32; 3] = [
-            self * rhs.data[0],
-            self * rhs.data[1],
-            self * rhs.data[2],
-        ];
+        let data: [f32; 3] = [self * rhs.data[0], self * rhs.data[1], self * rhs.data[2]];
         return Self::Output { data };
     }
 }
 
-impl  ops::Div<f32> for Vector {
+impl ops::Div<f32> for Vector {
     type Output = Vector;
 
     fn div(self, rhs: f32) -> Self::Output {
-        let data: [f32; 3] = [
-            self.data[0] / rhs,
-            self.data[1] / rhs,
-            self.data[2]  / rhs,
-        ];
+        let data: [f32; 3] = [self.data[0] / rhs, self.data[1] / rhs, self.data[2] / rhs];
         return Self::Output { data };
     }
 }

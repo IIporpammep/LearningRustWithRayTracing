@@ -12,7 +12,7 @@ use hittables::hittable::Hittable;
 use hittables::hittable_list::HittableList;
 use hittables::sphere::Sphere;
 use ray::Ray;
-use vector::{lerp, Vector};
+use vector::{lerp, random_on_unit_sphere, Vector};
 
 fn main() -> Result<(), Error> {
     let mut world: HittableList = HittableList {
@@ -43,6 +43,7 @@ fn main() -> Result<(), Error> {
     write!(output, "P3\n{} {}\n255\n", width, height)?;
 
     let samples_per_pixel: i32 = 100;
+    let max_depth : i32 = 50;
     let mut random = rand::thread_rng();
 
     for y in 0..height {
@@ -59,7 +60,7 @@ fn main() -> Result<(), Error> {
                 let v_with_offset: f32 = v + random.gen::<f32>() / (height as f32);
 
                 let ray = camera.get_ray(u_with_offset, v_with_offset);
-                result_color += calculate_color(&ray, &world);
+                result_color += calculate_color(&ray, &world, max_depth);
             }
 
             match write_average_color(output, result_color, samples_per_pixel) {
@@ -75,19 +76,30 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn calculate_color(ray: &Ray, world: &HittableList) -> Vector {
-    match (*world).hit(ray, 0.0, f32::MAX) {
+fn calculate_color(ray: &Ray, world: &HittableList, depth : i32) -> Vector {
+
+    if depth <= 0 {
+        return Vector::default();
+    }
+
+    match world.hit(ray, 0.001, f32::MAX) {
         Some(hit_result) => {
+            let target: Vector = hit_result.origin + hit_result.normal + random_on_unit_sphere();
+
             return 0.5
-                * (hit_result.normal
-                    + Vector {
-                        data: [1.0, 1.0, 1.0],
-                    })
+                * calculate_color(
+                    &Ray {
+                        origin: hit_result.origin,
+                        direction: target - hit_result.origin,
+                    },
+                    world,
+                    depth - 1
+                );
         }
         None => (),
     }
 
-    let direction_normalized: Vector = (*ray).direction.normalize();
+    let direction_normalized: Vector = ray.direction.normalize();
 
     // Remap y = [-1..1] to [0..1] range.
     let t: f32 = 0.5 * (direction_normalized.y() + 1.0);
@@ -110,9 +122,11 @@ fn write_average_color(
 ) -> Result<File, Error> {
     let average_color = color / (samples_per_pixel as f32);
 
-    let r: u8 = (average_color.r() * 255.99) as u8;
-    let g: u8 = (average_color.g() * 255.99) as u8;
-    let b: u8 = (average_color.b() * 255.99) as u8;
+    let gamma :f32 = 1.0 / 2.2;
+
+    let r: u8 = (average_color.r().powf(gamma) * 255.99) as u8;
+    let g: u8 = (average_color.g().powf(gamma) * 255.99) as u8;
+    let b: u8 = (average_color.b().powf(gamma) * 255.99) as u8;
     match write!(file, "{} {} {}\n", r, g, b) {
         Ok(_it) => return Ok(file),
         Err(err) => return Err(err),
