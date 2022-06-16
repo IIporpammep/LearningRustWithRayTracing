@@ -72,7 +72,7 @@ fn main() -> Result<(), Error> {
         centre: Vector {
             data: [-1.0, 0.0, 1.0],
         },
-        radius: -0.4,
+        radius: -0.45,
         material: material_left as &dyn Material,
     }));
 
@@ -86,7 +86,19 @@ fn main() -> Result<(), Error> {
 
     let aspect_ratio: f32 = 16.0 / 9.0;
 
-    let camera: Camera = Camera::new(aspect_ratio);
+    let camera: Camera = Camera::new(
+        &Vector {
+            data: [-2.0, 2.0, -1.0],
+        },
+        &Vector {
+            data: [0.0, 0.0, 1.0],
+        },
+        &Vector {
+            data: [0.0, 1.0, 0.0],
+        },
+        aspect_ratio,
+        20.0,
+    );
 
     let width: i32 = 200;
     let height: i32 = (width as f32 / aspect_ratio) as i32;
