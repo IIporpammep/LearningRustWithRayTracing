@@ -1,10 +1,10 @@
 use materials::dielectric_material::DielectricMaterial;
 use materials::diffuse_material::DiffuseMaterial;
-use materials::material::Material;
 use materials::metal_material::MetalMaterial;
 use rand::Rng;
 use std::fs::File;
 use std::io::{Error, Write};
+use std::time::Instant;
 
 pub mod camera;
 pub mod hit_record;
@@ -20,81 +20,26 @@ use ray::Ray;
 use vector::{lerp, Vector};
 
 fn main() -> Result<(), Error> {
-    let material_ground: &'static DiffuseMaterial = &DiffuseMaterial {
-        albedo: Vector {
-            data: [0.8, 0.8, 0.0],
-        },
-    };
-    let material_centre: &'static DiffuseMaterial = &DiffuseMaterial {
-        albedo: Vector {
-            data: [0.1, 0.2, 0.5],
-        },
-    };
-    let material_left: &'static DielectricMaterial = &DielectricMaterial {
-        refraction_index: 1.5,
-    };
-    let material_right: &'static MetalMaterial = &MetalMaterial {
-        albedo: Vector {
-            data: [0.8, 0.6, 0.2],
-        },
-        fuzziness: 0.0,
-    };
+    // Image.
+    let aspect_ratio: f32 = 3.0 / 2.0;
+    let width: i32 = 1200;
+    let height: i32 = (width as f32 / aspect_ratio) as i32;
+    let samples_per_pixel: i32 = 100;
+    let max_depth: i32 = 50;
 
-    let mut world: HittableList = HittableList {
-        hittables: Vec::new(),
-    };
+    // World.
+    let world = generate_random_scene();
 
-    world.hittables.push(Box::new(Sphere {
-        centre: Vector {
-            data: [0.0, -100.5, 1.0],
-        },
-        radius: 100.0,
-        material: material_ground as &dyn Material,
-    }));
-
-    world.hittables.push(Box::new(Sphere {
-        centre: Vector {
-            data: [0.0, 0.0, 1.0],
-        },
-        radius: 0.5,
-        material: material_centre as &dyn Material,
-    }));
-
-    world.hittables.push(Box::new(Sphere {
-        centre: Vector {
-            data: [-1.0, 0.0, 1.0],
-        },
-        radius: 0.5,
-        material: material_left as &dyn Material,
-    }));
-
-    world.hittables.push(Box::new(Sphere {
-        centre: Vector {
-            data: [-1.0, 0.0, 1.0],
-        },
-        radius: -0.45,
-        material: material_left as &dyn Material,
-    }));
-
-    world.hittables.push(Box::new(Sphere {
-        centre: Vector {
-            data: [1.0, 0.0, 1.0],
-        },
-        radius: 0.5,
-        material: material_right as &dyn Material,
-    }));
-
-    let aspect_ratio: f32 = 16.0 / 9.0;
-
+    // Camera.
     let camera_origin = Vector {
-        data: [3.0, 3.0, -2.0],
+        data: [13.0, 2.0, -3.0],
     };
 
     let camera_target = Vector {
-        data: [0.0, 0.0, 1.0],
+        data: [0.0, 0.0, 0.0],
     };
 
-    let focus_distance = (camera_target - camera_origin).length();
+    let focus_distance = 10.0; //Not hardcoded way: (camera_target - camera_origin).length();
 
     let camera: Camera = Camera::new(
         &camera_origin,
@@ -104,22 +49,20 @@ fn main() -> Result<(), Error> {
         },
         aspect_ratio,
         20.0,
-        2.0,
+        0.1,
         focus_distance,
     );
 
-    let width: i32 = 200;
-    let height: i32 = (width as f32 / aspect_ratio) as i32;
+    // Render.
     let path = "image.ppm";
-
     let mut output = File::create(path)?;
     write!(output, "P3\n{} {}\n255\n", width, height)?;
 
-    let samples_per_pixel: i32 = 100;
-    let max_depth: i32 = 50;
     let mut random = rand::thread_rng();
+    let timer = Instant::now();
 
     for y in 0..height {
+        print!("Lines left {}\n", height - y);
         for x in 0..width {
             let u: f32 = x as f32 / width as f32;
             let v: f32 = (height as f32 - y as f32) / height as f32;
@@ -146,7 +89,131 @@ fn main() -> Result<(), Error> {
         }
     }
 
+    print!("Done in {} sec!", timer.elapsed().as_secs());
     Ok(())
+}
+
+fn generate_random_scene() -> HittableList {
+    let mut world: HittableList = HittableList {
+        hittables: Vec::new(),
+    };
+
+    world.hittables.push(Box::new(Sphere {
+        centre: Vector {
+            data: [0.0, -1000.0, 0.0],
+        },
+        radius: 1000.0,
+        material: Box::new(DiffuseMaterial {
+            albedo: Vector {
+                data: [0.5, 0.5, 0.5],
+            },
+        }),
+    }));
+
+    let mut random = rand::thread_rng();
+    for x in -11..11 {
+        for z in -11..11 {
+            let sphere_origin = Vector {
+                data: [
+                    x as f32 + 0.9 * random.gen::<f32>(),
+                    0.2,
+                    z as f32 + 0.9 * random.gen::<f32>(),
+                ],
+            };
+
+            if (sphere_origin
+                - Vector {
+                    data: [4.0, 0.2, 0.0],
+                })
+            .length()
+                <= 0.9
+            {
+                continue;
+            }
+
+            let random_material = random.gen::<f32>();
+
+            if random_material < 0.8 {
+                // Diffuse.
+                let albedo = Vector {
+                    data: [random.gen(), random.gen(), random.gen()],
+                };
+
+                world.hittables.push(Box::new(Sphere {
+                    centre: sphere_origin,
+                    radius: 0.2,
+                    material: Box::new(DiffuseMaterial {
+                        albedo: albedo * albedo,
+                    }),
+                }));
+            } else if random_material < 0.95 {
+                // Metal.
+                let albedo = Vector {
+                    data: [
+                        random.gen_range(0.5..=1.0),
+                        random.gen_range(0.5..=1.0),
+                        random.gen_range(0.5..=1.0),
+                    ],
+                };
+
+                let fuzziness = random.gen_range(0.0..=0.5);
+
+                world.hittables.push(Box::new(Sphere {
+                    centre: sphere_origin,
+                    radius: 0.2,
+                    material: Box::new(MetalMaterial {
+                        albedo: albedo,
+                        fuzziness: fuzziness,
+                    }),
+                }));
+            } else {
+                // Glass.
+                world.hittables.push(Box::new(Sphere {
+                    centre: sphere_origin,
+                    radius: 0.2,
+                    material: Box::new(DielectricMaterial {
+                        refraction_index: 1.5,
+                    }),
+                }));
+            }
+        }
+    }
+
+    world.hittables.push(Box::new(Sphere {
+        centre: Vector {
+            data: [0.0, 1.0, 0.0],
+        },
+        radius: 1.0,
+        material: Box::new(DielectricMaterial {
+            refraction_index: 1.5,
+        }),
+    }));
+
+    world.hittables.push(Box::new(Sphere {
+        centre: Vector {
+            data: [-4.0, 1.0, 0.0],
+        },
+        radius: 1.0,
+        material: Box::new(DiffuseMaterial {
+            albedo: Vector {
+                data: [0.4, 0.2, 0.1],
+            },
+        }),
+    }));
+
+    world.hittables.push(Box::new(Sphere {
+        centre: Vector {
+            data: [4.0, 1.0, 0.0],
+        },
+        radius: 1.0,
+        material: Box::new(MetalMaterial {
+            albedo: Vector {
+                data: [0.7, 0.6, 0.5],
+            },
+            fuzziness: 0.0,
+        }),
+    }));
+    return world;
 }
 
 fn calculate_color(ray: &Ray, world: &HittableList, depth: i32) -> Vector {
