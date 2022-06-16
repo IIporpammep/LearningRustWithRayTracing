@@ -37,11 +37,33 @@ pub fn random_on_unit_sphere() -> Vector {
 
         let random_vector = Vector { data: data };
 
-        if random_vector.squared_length() >= 1.0 {
+        if random_vector.squared_length() > 1.0 {
             continue;
         }
 
         return random_vector.normalize();
+    }
+}
+
+pub fn random_in_unit_disc() -> Vector
+{
+    let mut random = rand::thread_rng();
+    let chance = Uniform::<f32>::from(-1.0..1.0);
+
+    loop {
+        let data = [
+            chance.sample(&mut random),
+            chance.sample(&mut random),
+            0.0,
+        ];
+
+        let random_vector = Vector { data: data };
+
+        if random_vector.squared_length() >= 1.0 {
+            continue;
+        }
+
+        return random_vector;
     }
 }
 

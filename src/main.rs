@@ -86,18 +86,26 @@ fn main() -> Result<(), Error> {
 
     let aspect_ratio: f32 = 16.0 / 9.0;
 
+    let camera_origin = Vector {
+        data: [3.0, 3.0, -2.0],
+    };
+
+    let camera_target = Vector {
+        data: [0.0, 0.0, 1.0],
+    };
+
+    let focus_distance = (camera_target - camera_origin).length();
+
     let camera: Camera = Camera::new(
-        &Vector {
-            data: [-2.0, 2.0, -1.0],
-        },
-        &Vector {
-            data: [0.0, 0.0, 1.0],
-        },
+        &camera_origin,
+        &camera_target,
         &Vector {
             data: [0.0, 1.0, 0.0],
         },
         aspect_ratio,
         20.0,
+        2.0,
+        focus_distance,
     );
 
     let width: i32 = 200;
