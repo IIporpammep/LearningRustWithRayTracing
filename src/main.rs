@@ -1,3 +1,6 @@
+use materials::diffuse_material::DiffuseMaterial;
+use materials::material::Material;
+use materials::metal_material::MetalMaterial;
 use rand::Rng;
 use std::fs::File;
 use std::io::{Error, Write};
@@ -5,6 +8,7 @@ use std::io::{Error, Write};
 pub mod camera;
 pub mod hit_record;
 pub mod hittables;
+pub mod materials;
 pub mod ray;
 pub mod vector;
 use camera::Camera;
@@ -12,23 +16,66 @@ use hittables::hittable::Hittable;
 use hittables::hittable_list::HittableList;
 use hittables::sphere::Sphere;
 use ray::Ray;
-use vector::{lerp, random_on_unit_sphere, Vector};
+use vector::{lerp, Vector};
 
 fn main() -> Result<(), Error> {
+    let material_ground: &'static DiffuseMaterial = &DiffuseMaterial {
+        albedo: Vector {
+            data: [0.8, 0.8, 0.0],
+        },
+    };
+    let material_centre: &'static DiffuseMaterial = &DiffuseMaterial {
+        albedo: Vector {
+            data: [0.7, 0.3, 0.3],
+        },
+    };
+    let material_left: &'static MetalMaterial = &MetalMaterial {
+        albedo: Vector {
+            data: [0.8, 0.8, 0.8],
+        },
+        fuzziness : 0.3
+    };
+    let material_right: &'static MetalMaterial = &MetalMaterial {
+        albedo: Vector {
+            data: [0.8, 0.6, 0.2],
+        },
+        fuzziness : 1.0
+    };
+
     let mut world: HittableList = HittableList {
         hittables: Vec::new(),
     };
-    world.hittables.push(Box::new(Sphere {
-        centre: Vector {
-            data: [0.0, 0.0, 1.0],
-        },
-        radius: 0.5,
-    }));
+
     world.hittables.push(Box::new(Sphere {
         centre: Vector {
             data: [0.0, -100.5, 1.0],
         },
         radius: 100.0,
+        material: material_ground as &dyn Material,
+    }));
+
+    world.hittables.push(Box::new(Sphere {
+        centre: Vector {
+            data: [0.0, 0.0, 1.0],
+        },
+        radius: 0.5,
+        material: material_centre as &dyn Material,
+    }));
+
+    world.hittables.push(Box::new(Sphere {
+        centre: Vector {
+            data: [-1.0, 0.0, 1.0],
+        },
+        radius: 0.5,
+        material: material_left as &dyn Material,
+    }));
+
+    world.hittables.push(Box::new(Sphere {
+        centre: Vector {
+            data: [1.0, 0.0, 1.0],
+        },
+        radius: 0.5,
+        material: material_right as &dyn Material,
     }));
 
     let aspect_ratio: f32 = 16.0 / 9.0;
@@ -43,7 +90,7 @@ fn main() -> Result<(), Error> {
     write!(output, "P3\n{} {}\n255\n", width, height)?;
 
     let samples_per_pixel: i32 = 100;
-    let max_depth : i32 = 50;
+    let max_depth: i32 = 50;
     let mut random = rand::thread_rng();
 
     for y in 0..height {
@@ -76,26 +123,21 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn calculate_color(ray: &Ray, world: &HittableList, depth : i32) -> Vector {
-
+fn calculate_color(ray: &Ray, world: &HittableList, depth: i32) -> Vector {
     if depth <= 0 {
         return Vector::default();
     }
 
+    // Try hit something in the world.
     match world.hit(ray, 0.001, f32::MAX) {
-        Some(hit_result) => {
-            let target: Vector = hit_result.origin + hit_result.normal + random_on_unit_sphere();
-
-            return 0.5
-                * calculate_color(
-                    &Ray {
-                        origin: hit_result.origin,
-                        direction: target - hit_result.origin,
-                    },
-                    world,
-                    depth - 1
-                );
-        }
+        // Try scatter ray from the hit geometry.
+        Some(hit_result) => match hit_result.material.scatter(ray, &hit_result) {
+            // Cast scattered ray.
+            Some((attenuation, scattered_ray)) => {
+                return attenuation * calculate_color(&scattered_ray, world, depth - 1);
+            }
+            None => return Vector::default(),
+        },
         None => (),
     }
 
@@ -122,7 +164,7 @@ fn write_average_color(
 ) -> Result<File, Error> {
     let average_color = color / (samples_per_pixel as f32);
 
-    let gamma :f32 = 1.0 / 2.2;
+    let gamma: f32 = 1.0 / 2.2;
 
     let r: u8 = (average_color.r().powf(gamma) * 255.99) as u8;
     let g: u8 = (average_color.g().powf(gamma) * 255.99) as u8;

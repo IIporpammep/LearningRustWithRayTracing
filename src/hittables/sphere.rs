@@ -2,15 +2,16 @@ use super::hittable::Hittable;
 use crate::{
     hit_record::{HitRecord, get_face_and_normal_against_ray},
     ray::Ray,
-    vector::{dot, Vector},
+    vector::{dot, Vector}, materials::material::Material,
 };
 
-pub struct Sphere {
+pub struct Sphere<'a> {
     pub centre: Vector,
     pub radius: f32,
+    pub material : &'a dyn Material
 }
 
-impl Hittable for Sphere {
+impl Hittable for Sphere<'_> {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let oc: Vector = (*ray).origin - (self.centre);
         let a: f32 = (*ray).direction.squared_length();
@@ -44,6 +45,7 @@ impl Hittable for Sphere {
             normal: normal,
             is_front_face : face,
             t: root,
+            material : self.material
         });
     }
 }

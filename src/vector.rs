@@ -91,6 +91,16 @@ impl Vector {
         ];
         return Self { data };
     }
+
+    pub fn is_near_zero(&self) -> bool {
+        let epsilon: f32 = 1e-8;
+        self.data[0].abs() < epsilon && self.data[1].abs() < epsilon && self.data[2].abs() < epsilon
+    }
+
+    pub fn reflect(&self, normal : &Vector) -> Vector
+    {
+        *self - 2.0 * dot(self, normal) * (*normal)
+    }
 }
 
 impl ops::Add for Vector {

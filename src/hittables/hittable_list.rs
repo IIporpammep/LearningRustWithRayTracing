@@ -8,8 +8,7 @@ pub struct HittableList {
 
 impl Hittable for HittableList {
     fn hit(&self, ray: &crate::ray::Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
-        let mut hit_something = false;
-        let mut hit_record: HitRecord = HitRecord::default();
+        let mut hit_record: Option<HitRecord> = None;
         let mut closest_t: f32 = t_max;
 
         for hittable in self.hittables.iter() {
@@ -17,17 +16,12 @@ impl Hittable for HittableList {
                 Some(hit_result) => {
                     if hit_result.t < closest_t {
                         closest_t = hit_result.t;
-                        hit_something = true;
-                        hit_record = hit_result;
+                        hit_record = Some(hit_result);
                     }
                 }
                 None => (),
             }
         }
-
-        if hit_something {
-            return Some(hit_record);
-        }
-        return None;
+        return hit_record;
     }
 }
